@@ -55,7 +55,7 @@ temporal derivative.
 Substituting these approximations into the Schrödinger's Equation, we get
 
 ````math
-i \hbar \frac{|\psi(t + \Delta t)\rangle} = - \frac{\hbar^2}{2m} \frac{|\psi(x + \Delta x)\rangle - 2|\psi(x)\rangle + |\psi(x - \Delta x)\rangle}{\Delta x^2} + V(x)|\psi(x)\rangle}{\Delta t}
+i \hbar \frac{|\psi(t + \Delta t)\rangle}{\Delta t} = - \frac{\hbar^2}{2m} \frac{|\psi(x + \Delta x)\rangle - 2|\psi(x)\rangle + |\psi(x - \Delta x)\rangle}{\Delta x^2} + V(x)|\psi(x)\rangle}{\Delta t}
 ````
 
 Solving for $|\psi(t + \Delta t)\rangle$, we get
