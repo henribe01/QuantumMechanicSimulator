@@ -55,17 +55,61 @@ temporal derivative.
 Substituting these approximations into the Schrödinger's Equation, we get
 
 ````math
-i \hbar \frac{|\psi(t + \Delta t)\rangle = - \frac{\hbar^2}{2m} \frac{|\psi(x + \Delta x)\rangle - 2|\psi(x)\rangle + |\psi(x - \Delta x)\rangle}{\Delta x^2} + V(x)|\psi(x)\rangle}{\Delta t}
+i \hbar \frac{|\psi(t + \Delta t)\rangle} = - \frac{\hbar^2}{2m} \frac{|\psi(x + \Delta x)\rangle - 2|\psi(x)\rangle + |\psi(x - \Delta x)\rangle}{\Delta x^2} + V(x)|\psi(x)\rangle}{\Delta t}
 ````
 
 Solving for $|\psi(t + \Delta t)\rangle$, we get
 
 ````math
-|\psi(t + \Delta t)\rangle = \left(1 + \frac{i \hbar \Delta t}{2m \Delta x^2}\right)^{-1} \left(2|\psi(x)\rangle - \left(1 - \frac{i \hbar \Delta t}{2m \Delta x^2}\right) \left(|\psi(x + \Delta x)\rangle + |\psi(x - \Delta x)\rangle\right)\right)
+|\psi(x, t + \Delta t)\rangle = |\psi(x, t)\rangle + \frac{i \hbar \Delta t}{2m \Delta x^2} \left(|\psi(x + \Delta x, t)\rangle - 2|\psi(x, t)\rangle + |\psi(x - \Delta x, t)\rangle\right) - \frac{i \Delta t}{\hbar} V(x)|\psi(x, t)\rangle
 ````
 
-This equation can then be solved using the Crank-Nicolson
-method [[4](#sources)].
+If we define $\alpha = \frac{i \hbar \Delta t}{2m \Delta x^2}$ and rewrite the
+equation in matrix form, we get
+
+````math
+\begin{pmatrix}
+\vdots \\
+|\psi(x - \Delta x, t + \Delta t)\rangle \\
+|\psi(x, t + \Delta t)\rangle \\
+|\psi(x + \Delta x, t + \Delta t)\rangle \\
+\vdots
+\end{pmatrix}
+=
+\begin{pmatrix}
+    \ddots & \ddots & \ddots & \ddots & \ddots \\
+    \ddots & 1 + 2 i \alpha - \frac{i \Delta t}{\hbar} V(x - \Delta x) & i \alpha & 0 & 0 \\
+    \ddots & i \alpha & 1 - 2 i \alpha - \frac{i \Delta t}{\hbar} V(x) & i \alpha & 0 \\
+    \ddots & 0 & i \alpha & 1 + 2 i \alpha - \frac{i \Delta t}{\hbar} V(x + \Delta x) & \ddots \\
+    \ddots & 0 & 0 & \ddots & \ddots
+\end{pmatrix}
+\begin{pmatrix}
+\vdots \\
+|\psi(x - \Delta x, t)\rangle \\
+|\psi(x, t)\rangle \\
+|\psi(x + \Delta x, t)\rangle \\
+\vdots
+\end{pmatrix} = \hat{A}_t |\psi_t\rangle
+````
+
+where $\hat{A}_t$ is the matrix that describes the system at time $t$ and
+$|\psi_t\rangle$ is the state of the system at time $t$.
+
+We can solve this equation by using the Crank-Nicolson method [[4](#sources)].
+We get
+
+````math
+|\psi_{t + \Delta t}\rangle = \frac{1}{2}\left(\hat{A}_t |\psi_t\rangle + \hat{A}_{t + \Delta t} |\psi_{t + \Delta t}\rangle\right)
+````
+
+Solving for $|\psi_{t + \Delta t}\rangle$, we get
+
+````math
+|\psi_{t + \Delta t}\rangle = \left(\hat{1} - \frac{1}{2}\hat{A}_{t + \Delta t}\right)^{-1} \hat{A}_t |\psi_t\rangle
+````
+
+where $\hat{1}$ is the identity matrix. We can use this equation to solve the
+Schrödinger's Equation numerically.
 
 ## Technologies used
 
