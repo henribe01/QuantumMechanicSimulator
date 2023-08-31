@@ -1,89 +1,68 @@
-import matplotlib
+import math
+
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+import matplotlib
 import scipy as sp
 
 matplotlib.use('TkAgg')
-plt.style.use('seaborn-v0_8')
-
-hbar = 1
-mass = 1
-
-
-def get_time_evolution_matrix(dt: float, dx: float,
-                              potential: np.ndarray) -> np.ndarray:
-    """
-    Returns the time evolution matrix according to the Theory in readme.md
-    :param dt: The time step
-    :param dx: The space step
-    :param potential: The potential as a function of space (same length as spatial_grid)
-    :return: The time evolution matrix
-    """
-    alpha = hbar * dt / (2 * mass * dx ** 2)
-    off_diag = np.full(len(potential) - 1, 1j * alpha)
-    diag = np.full(len(potential), 1 - 2j * alpha - 1j * dt * potential / hbar)
-    return sp.sparse.diags([off_diag, diag, off_diag], [-1, 0, 1], format='csc')
-
-
-def normalize(state: np.ndarray) -> np.ndarray:
-    """
-    Normalizes the wave function
-    :param state: The wave function
-    :return: The normalized wave function
-    """
-    return state / np.sqrt(np.sum(np.abs(state) ** 2))
 
 
 def gaussian_wave_packet(spatial_grid: np.ndarray, x_0: float, k_0: float,
                          width: float) -> np.ndarray:
-    """
-    Creates a wave packet in form off a Gaussian wave packet
-    :param spatial_grid: The discretized space
-    :param x_0: The center of the wave packet
-    :param k_0: The center of the momentum distribution
-    :param width: The width of the wave packet
-    :return: The wave packet discretized in space
-    """
-    return normalize(
-        np.exp(-np.square(spatial_grid - x_0) / (4 * width ** 2)) * np.exp(
-            -1j * k_0 * spatial_grid))
+    return np.exp(
+        -0.5 * np.square(spatial_grid - x_0) / np.square(width)) * np.exp(
+        1j * k_0 * spatial_grid)
+
+
+def get_kinetic_operator(spatial_grid: np.ndarray) -> np.ndarray:
+    dx = spatial_grid[1] - spatial_grid[0]
+    off_diag = np.ones(len(spatial_grid) - 1)
+    diag = -2 * np.ones(len(spatial_grid))
+    return sp.sparse.diags([off_diag, diag, off_diag], [-1, 0, 1]) / dx ** 2
+
+
+def get_potential_operator(spatial_grid: np.ndarray) -> np.ndarray:
+    V = np.zeros(len(spatial_grid))
+    return sp.sparse.diags(V)
+
+
+def get_hamiltonian(spatial_grid: np.ndarray) -> np.ndarray:
+    return get_kinetic_operator(spatial_grid) + get_potential_operator(
+        spatial_grid)
+
+
+def crank_nicolson_step(psi: np.ndarray, hamiltonian: np.ndarray,
+                        dt: float) -> np.ndarray:
+    u1 = sp.sparse.eye(len(psi)) - 0.5j * dt * hamiltonian
+    u2 = sp.sparse.eye(len(psi)) + 0.5j * dt * hamiltonian
+    u1 = u1.tocsc()
+    u2 = u2.tocsc()
+    return sp.sparse.linalg.spsolve(u1, u2.dot(psi))
 
 
 if __name__ == '__main__':
-    spatial_grid = np.linspace(-10, 10, 2000)
-    dt = 0.001
-    dx = spatial_grid[1] - spatial_grid[0]
-    x_0 = 0
-    k_0 = 0
-    width = 0.1
-    potential = np.zeros(len(spatial_grid))
-    state = gaussian_wave_packet(spatial_grid, x_0, k_0, width)
-
-    steps = 1000
-    states = np.zeros((steps, len(state)), dtype=np.complex128)
-    states[0] = state
-    for i in range(1, steps):
-        states[i] = sp.sparse.linalg.spsolve(
-            get_time_evolution_matrix(dt, dx, potential), states[i - 1])
-
     fig, ax = plt.subplots()
-    ax.set_ylim(-0.2, 0.2)
-    ax.set_xlim(-10, 10)
-    real_line, = ax.plot([], [], label='Real')
-    imag_line, = ax.plot([], [], label='Imag')
-    abs_line, = ax.plot([], [], label='Abs')
-    plt.legend(handles=[real_line, imag_line, abs_line])
-    speed = 10
+    x_min = 0
+    x_max = 10
+    x_0 = x_max / 2
+    k_0 = 5
+    width = 0.5
+    spatial_grid = np.linspace(x_min, x_max, 1000)
+    n = 10
+    psi = gaussian_wave_packet(spatial_grid, x_max / 2, 5, 0.5)
+    #psi = np.sqrt(2 / x_max) * np.sin(n * np.pi * spatial_grid / x_max)
+    real_line, = ax.plot(spatial_grid, psi.real, label='Real')
+    imag_line, = ax.plot(spatial_grid, psi.imag, label='Imag')
+    abs_line, = ax.plot(spatial_grid, np.abs(psi), label='Abs')
 
-
-    def animate(i):
-        real_line.set_data(spatial_grid, np.real(states[i * speed]))
-        imag_line.set_data(spatial_grid, np.imag(states[i * speed]))
-        abs_line.set_data(spatial_grid, np.abs(states[i * speed]))
-        return real_line, imag_line, abs_line
-
-
-    ani = FuncAnimation(fig, animate, frames=steps // speed, interval=1,
-                        blit=True, repeat=True)
-    plt.show()
+    hamiltonian = get_hamiltonian(spatial_grid)
+    dt = 0.001
+    for i in range(100000):
+        psi = crank_nicolson_step(psi, hamiltonian, dt)
+        real_line.set_ydata(psi.real)
+        imag_line.set_ydata(psi.imag)
+        abs_line.set_ydata(np.abs(psi))
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+        plt.pause(0.001)
