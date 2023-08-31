@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import scipy as sp
+from matplotlib.animation import FuncAnimation
+from particle import Particle
 
 matplotlib.use('TkAgg')
 
@@ -15,54 +17,52 @@ def gaussian_wave_packet(spatial_grid: np.ndarray, x_0: float, k_0: float,
         1j * k_0 * spatial_grid)
 
 
-def get_kinetic_operator(spatial_grid: np.ndarray) -> np.ndarray:
-    dx = spatial_grid[1] - spatial_grid[0]
-    off_diag = np.ones(len(spatial_grid) - 1)
-    diag = -2 * np.ones(len(spatial_grid))
-    return sp.sparse.diags([off_diag, diag, off_diag], [-1, 0, 1]) / dx ** 2
+def infinite_potential_well_eigenfunction(spatial_grid: np.ndarray,
+                                          n: int) -> np.ndarray:
+    L = x_max - x_min
+    return np.sqrt(2 / L) * np.sin(n * np.pi * (spatial_grid - x_min) / L)
 
 
-def get_potential_operator(spatial_grid: np.ndarray) -> np.ndarray:
-    V = np.zeros(len(spatial_grid))
-    return sp.sparse.diags(V)
-
-
-def get_hamiltonian(spatial_grid: np.ndarray) -> np.ndarray:
-    return get_kinetic_operator(spatial_grid) + get_potential_operator(
-        spatial_grid)
-
-
-def crank_nicolson_step(psi: np.ndarray, hamiltonian: np.ndarray,
-                        dt: float) -> np.ndarray:
-    u1 = sp.sparse.eye(len(psi)) - 0.5j * dt * hamiltonian
-    u2 = sp.sparse.eye(len(psi)) + 0.5j * dt * hamiltonian
-    u1 = u1.tocsc()
-    u2 = u2.tocsc()
-    return sp.sparse.linalg.spsolve(u1, u2.dot(psi))
+def potential(x: np.ndarray) -> np.ndarray:
+    return np.zeros(len(x))
 
 
 if __name__ == '__main__':
-    fig, ax = plt.subplots()
     x_min = 0
     x_max = 10
     x_0 = x_max / 2
     k_0 = 5
-    width = 0.5
+    width = 0.1
     spatial_grid = np.linspace(x_min, x_max, 1000)
-    n = 10
-    psi = gaussian_wave_packet(spatial_grid, x_max / 2, 5, 0.5)
-    #psi = np.sqrt(2 / x_max) * np.sin(n * np.pi * spatial_grid / x_max)
-    real_line, = ax.plot(spatial_grid, psi.real, label='Real')
-    imag_line, = ax.plot(spatial_grid, psi.imag, label='Imag')
-    abs_line, = ax.plot(spatial_grid, np.abs(psi), label='Abs')
 
-    hamiltonian = get_hamiltonian(spatial_grid)
+    particle = Particle(spatial_grid, gaussian_wave_packet, x_0=x_0, k_0=k_0, width=width)
+    # particle = Particle(spatial_grid, infinite_potential_well_eigenfunction, n=5)
+    potential = np.diag(potential(spatial_grid))
     dt = 0.001
-    for i in range(100000):
-        psi = crank_nicolson_step(psi, hamiltonian, dt)
-        real_line.set_ydata(psi.real)
-        imag_line.set_ydata(psi.imag)
-        abs_line.set_ydata(np.abs(psi))
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-        plt.pause(0.001)
+    steps = 1000
+
+    # Plot
+    fig, ax = plt.subplots()
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(-1, 1)
+    real_line, = ax.plot([], [], label="Re")
+    imag_line, = ax.plot([], [], label="Im")
+    abs_line, = ax.plot([], [], label="Abs")
+    prob_line, = ax.plot([], [], label="Prob")
+    ax.legend()
+
+
+    # Animation
+    def animate(i):
+        particle.simulation_step(potential, dt)
+        real_line.set_data(particle.spatial_grid, np.real(particle.psi))
+        imag_line.set_data(particle.spatial_grid, np.imag(particle.psi))
+        abs_line.set_data(particle.spatial_grid, np.abs(particle.psi))
+        prob_line.set_data(particle.spatial_grid,
+                           particle.get_probability_density())
+        return real_line, imag_line, abs_line, prob_line
+
+
+    anim = FuncAnimation(fig, animate, frames=steps, interval=1, blit=True,
+                         repeat=True)
+    plt.show()
