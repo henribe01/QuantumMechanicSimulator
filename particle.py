@@ -90,3 +90,18 @@ class Particle:
         Returns the probability density of the particle
         """
         return np.square(np.abs(self.psi))
+
+    def __add__(self, other):
+        if not isinstance(other, Particle):
+            raise TypeError(f'Cannot add Particle and {type(other)}',
+                            'Only addition of two Particles is supported')
+        if not np.array_equal(self.spatial_grid, other.spatial_grid):
+            raise ValueError(
+                'Cannot add Particles with different spatial grids',
+                'Make sure that both particles have the same spatial grid')
+        if self.mass != other.mass:
+            raise ValueError(
+                'Cannot add Particles with different masses',
+                'Make sure that both particles have the same mass')
+
+        return Particle(self.spatial_grid, lambda x: self.psi + other.psi)

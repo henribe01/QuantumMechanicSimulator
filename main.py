@@ -4,8 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import scipy as sp
+from matplotlib import animation
 from matplotlib.animation import FuncAnimation
 from particle import Particle
+from potential import InfiniteSquareWell
 
 matplotlib.use('TkAgg')
 
@@ -23,33 +25,38 @@ def infinite_potential_well_eigenfunction(spatial_grid: np.ndarray,
     return np.sqrt(2 / L) * np.sin(n * np.pi * (spatial_grid - x_min) / L)
 
 
-def potential(x: np.ndarray) -> np.ndarray:
-    return np.zeros(len(x))
-
-
 if __name__ == '__main__':
     x_min = 0
-    x_max = 10
+    x_max = 15
     x_0 = x_max / 2
-    k_0 = 5
+    k_0 = 0
+    # Should be smaller than x_max - x_min and larger than 0.05
+    # Otherwise the wave packet will be cut off at the boundaries or the
+    # probability density will be too narrow
+    # Best results for 0.1
     width = 0.1
-    spatial_grid = np.linspace(x_min, x_max, 1000)
+    spatial_grid = np.linspace(x_min, x_max, 2000)
 
-    particle = Particle(spatial_grid, gaussian_wave_packet, x_0=x_0, k_0=k_0, width=width)
-    # particle = Particle(spatial_grid, infinite_potential_well_eigenfunction, n=5)
-    potential = np.diag(potential(spatial_grid))
+    particle = Particle(spatial_grid, gaussian_wave_packet, x_0=5, k_0=0,
+                        width=width) + Particle(spatial_grid,
+                                                gaussian_wave_packet, x_0=10,
+                                                k_0=0, width=width)
+    potential = InfiniteSquareWell(spatial_grid, 2, 13)
     dt = 0.001
     steps = 1000
 
     # Plot
     fig, ax = plt.subplots()
     ax.set_xlim(x_min, x_max)
-    ax.set_ylim(-1, 1)
+    ax.set_ylim(-1, 2)
     real_line, = ax.plot([], [], label="Re")
     imag_line, = ax.plot([], [], label="Im")
     abs_line, = ax.plot([], [], label="Abs")
     prob_line, = ax.plot([], [], label="Prob")
     ax.legend()
+    potential_line = potential.plot(ax, facecolor='gray', edgecolor='black')
+    ax.fill_between(particle.spatial_grid, -1, facecolor='gray',
+                    edgecolor='black')
 
 
     # Animation
