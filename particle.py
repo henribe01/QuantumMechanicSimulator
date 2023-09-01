@@ -105,3 +105,24 @@ class Particle:
                 'Make sure that both particles have the same mass')
 
         return Particle(self.spatial_grid, lambda x: self.psi + other.psi)
+
+    def __sub__(self, other):
+        return self.__add__(-other)
+
+    def __mul__(self, other):
+        if isinstance(other, Particle):
+            raise TypeError(f'Cannot multiply Particle and {type(other)}',
+                            'Only multiplication of Particle with scalar is supported')
+        return Particle(self.spatial_grid, lambda x: other.psi * self.psi)
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __truediv__(self, other):
+        if isinstance(other, Particle):
+            raise TypeError(f'Cannot divide Particle by {type(other)}',
+                            'Only division of Particle by scalar is supported')
+        return Particle(self.spatial_grid, lambda x: self.psi / other)
+
+    def __neg__(self):
+        return Particle(self.spatial_grid, lambda x: -self.psi)

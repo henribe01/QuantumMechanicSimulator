@@ -2,9 +2,14 @@ import sys
 
 import numpy as np
 from matplotlib import pyplot as plt
+from abc import ABC
 
 
-class PotentialBase:
+class PotentialBase(ABC):
+    """
+    Base class for potentials
+    """
+
     def __init__(self, spatial_grid: np.ndarray, name: str):
         self.spatial_grid = spatial_grid
         self.dx = spatial_grid[1] - spatial_grid[0]
@@ -19,6 +24,12 @@ class PotentialBase:
         :return: List of artists
         """
         return ax.fill_between(self.spatial_grid, self.potential, **kwargs)
+
+    def get_potential(self) -> np.ndarray:
+        """
+        Returns the potential as a diagonal matrix on the spatial grid
+        """
+        return np.diag(self.potential)
 
 
 class InfiniteSquareWell(PotentialBase):
@@ -44,8 +55,12 @@ class InfiniteSquareWell(PotentialBase):
         self.potential[spatial_grid < left_wall] = 1e10
         self.potential[spatial_grid > right_wall] = 1e10
 
-    def get_potential(self) -> np.ndarray:
-        """
-        Returns the potential as a diagonal matrix on the spatial grid
-        """
-        return np.diag(self.potential)
+
+class HarmonicOscillator(PotentialBase):
+    def __init__(self, spatial_grid: np.ndarray, center: float, omega: float):
+        super().__init__(spatial_grid, "Harmonic Oscillator")
+        self.omega = omega
+        self.center = center
+        self.potential = 0.5 * self.omega ** 2 * np.square(spatial_grid - center)
+
+

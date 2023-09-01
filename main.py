@@ -7,7 +7,7 @@ import scipy as sp
 from matplotlib import animation
 from matplotlib.animation import FuncAnimation
 from particle import Particle
-from potential import InfiniteSquareWell
+from potential import *
 
 matplotlib.use('TkAgg')
 
@@ -25,11 +25,19 @@ def infinite_potential_well_eigenfunction(spatial_grid: np.ndarray,
     return np.sqrt(2 / L) * np.sin(n * np.pi * (spatial_grid - x_min) / L)
 
 
+def ground_state_harmonic(spatial_grid: np.ndarray, x_0: float,
+                          omega: float) -> np.ndarray:
+    return np.sqrt(np.sqrt(mass * omega / (hbar * np.pi))) * np.exp(
+        -0.5 * mass * omega / hbar * np.square(spatial_grid - x_0))
+
+
 if __name__ == '__main__':
     x_min = 0
     x_max = 15
-    x_0 = x_max / 2
+    center = (x_max - x_min) / 2
     k_0 = 0
+    mass = 1
+    hbar = 1
     # Should be smaller than x_max - x_min and larger than 0.05
     # Otherwise the wave packet will be cut off at the boundaries or the
     # probability density will be too narrow
@@ -37,11 +45,13 @@ if __name__ == '__main__':
     width = 0.1
     spatial_grid = np.linspace(x_min, x_max, 2000)
 
-    particle = Particle(spatial_grid, gaussian_wave_packet, x_0=5, k_0=0,
-                        width=width) + Particle(spatial_grid,
-                                                gaussian_wave_packet, x_0=10,
-                                                k_0=0, width=width)
+    omega = 0.5
+    particle = Particle(spatial_grid, gaussian_wave_packet, x_0=center, k_0=0,
+                        width=width)
+    #particle = Particle(spatial_grid, ground_state_harmonic, x_0=center,
+    #                    omega=omega)
     potential = InfiniteSquareWell(spatial_grid, 2, 13)
+    #potential = HarmonicOscillator(spatial_grid, center, omega)
     dt = 0.001
     steps = 1000
 
@@ -60,8 +70,10 @@ if __name__ == '__main__':
 
 
     # Animation
+    speed = 2
     def animate(i):
-        particle.simulation_step(potential, dt)
+        for _ in range(speed):
+            particle.simulation_step(potential.get_potential(), dt)
         real_line.set_data(particle.spatial_grid, np.real(particle.psi))
         imag_line.set_data(particle.spatial_grid, np.imag(particle.psi))
         abs_line.set_data(particle.spatial_grid, np.abs(particle.psi))
@@ -72,4 +84,6 @@ if __name__ == '__main__':
 
     anim = FuncAnimation(fig, animate, frames=steps, interval=1, blit=True,
                          repeat=True)
+    # particle.simulation_step(potential.get_potential(), dt)
+    # print(particle.psi)
     plt.show()
