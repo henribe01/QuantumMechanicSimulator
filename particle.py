@@ -1,4 +1,5 @@
 import sys
+import timeit
 from typing import Callable
 
 import numpy as np
@@ -40,14 +41,15 @@ class Particle:
         off_diag = np.ones(len(self.spatial_grid) - 1)
         diag = -2 * np.ones(len(self.spatial_grid))
         return sp.sparse.diags([off_diag, diag, off_diag],
-                               [-1, 0, 1]) / self.dx ** 2
+                               [-1, 0, 1], format="csr") / self.dx ** 2
 
-    def simulation_step(self, potential: np.ndarray, dt: float) -> None:
+    def simulation_step(self, potential: sp.sparse.csr_matrix, dt: float):
         """
         Performs a single simulation step using the Crank-Nicolson method
         :param potential: The potential at the current time step
         as a diagonal matrix on the spatial grid. \n
-        Must be of shape (len(spatial_grid), len(spatial_grid))
+        Must be of shape (len(spatial_grid), len(spatial_grid)) \n
+        Must be a sparse csr_matrix for good performance
         :param dt: The time step (for good results, dt should be <= 0.001)
         :return: None
         """
@@ -60,17 +62,21 @@ class Particle:
                 f"Potential must be of shape {len(self.spatial_grid)} x "
                 f"{len(self.spatial_grid)}")
 
-        # Make sure that the potential is a sparse matrix
-        potential = sp.sparse.csc_matrix(potential)
+        kinetic_operator = self.get_kinetic_operator()
+        # Calculate the matrix A as described in the Crank-Nicolson method
+        # as a banded matrix
+        off_diag = -0.5j * dt * kinetic_operator.diagonal(1)
+        off_diag_lower = np.concatenate(([0], off_diag))
+        off_diag_upper = np.concatenate((off_diag, [0]))
+        diag = np.ones(len(self.spatial_grid)) - 0.5j * dt * (kinetic_operator.diagonal(0) + potential.diagonal(0))
+        A = np.array([off_diag_lower, diag, off_diag_upper])
 
-        # Calculate the Crank-Nicolson matrix
-        u1 = sp.sparse.eye(len(self.spatial_grid)) - 0.5j * dt * (
-                self.get_kinetic_operator() - potential)
-        u2 = sp.sparse.eye(len(self.spatial_grid)) + 0.5j * dt * (
-                self.get_kinetic_operator() - potential)
+        # Calculate right hand side of the equation
+        u2 = sp.sparse.eye(len(self.spatial_grid), format='csr') + 0.5j * dt * (kinetic_operator + potential)
+        b = u2.dot(self.psi)
 
-        # Solve the linear system u1 * psi_new = u2 * psi using sparse solver
-        self.psi = sp.sparse.linalg.spsolve(u1, u2.dot(self.psi))
+        # Solve the equation
+        self.psi = sp.linalg.solve_banded((1, 1), A, b)
 
     def simulate(self, potential: np.ndarray, dt: float, steps: int) -> None:
         """

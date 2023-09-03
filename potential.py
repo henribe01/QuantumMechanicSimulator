@@ -1,6 +1,7 @@
 import sys
 
 import numpy as np
+import scipy as sp
 from matplotlib import pyplot as plt
 from abc import ABC
 
@@ -25,11 +26,11 @@ class PotentialBase(ABC):
         """
         return ax.fill_between(self.spatial_grid, self.potential, **kwargs)
 
-    def get_potential(self) -> np.ndarray:
+    def get_potential(self) -> sp.sparse.csr_matrix:
         """
         Returns the potential as a diagonal matrix on the spatial grid
         """
-        return np.diag(self.potential)
+        return sp.sparse.csr_matrix(sp.sparse.diags(self.potential))
 
 
 class InfiniteSquareWell(PotentialBase):

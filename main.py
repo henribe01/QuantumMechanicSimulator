@@ -1,4 +1,5 @@
 import math
+import timeit
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -48,12 +49,12 @@ if __name__ == '__main__':
     omega = 0.5
     particle = Particle(spatial_grid, gaussian_wave_packet, x_0=center, k_0=0,
                         width=width)
-    #particle = Particle(spatial_grid, ground_state_harmonic, x_0=center,
+    # particle = Particle(spatial_grid, ground_state_harmonic, x_0=center,
     #                    omega=omega)
     potential = InfiniteSquareWell(spatial_grid, 2, 13)
     #potential = HarmonicOscillator(spatial_grid, center, omega)
     dt = 0.001
-    steps = 1000
+    steps = 2000
 
     # Plot
     fig, ax = plt.subplots()
@@ -62,28 +63,31 @@ if __name__ == '__main__':
     real_line, = ax.plot([], [], label="Re")
     imag_line, = ax.plot([], [], label="Im")
     abs_line, = ax.plot([], [], label="Abs")
-    prob_line, = ax.plot([], [], label="Prob")
     ax.legend()
     potential_line = potential.plot(ax, facecolor='gray', edgecolor='black')
     ax.fill_between(particle.spatial_grid, -1, facecolor='gray',
                     edgecolor='black')
 
+    result = np.zeros((steps, len(particle.spatial_grid)), dtype=complex)
+    start = timeit.default_timer()
+    for i in range(steps):
+        particle.simulation_step(potential.get_potential(), dt)
+        result[i] = particle.psi
+    stop = timeit.default_timer()
+    print('Time: ', stop - start)
 
     # Animation
     speed = 2
+
+
     def animate(i):
-        for _ in range(speed):
-            particle.simulation_step(potential.get_potential(), dt)
-        real_line.set_data(particle.spatial_grid, np.real(particle.psi))
-        imag_line.set_data(particle.spatial_grid, np.imag(particle.psi))
-        abs_line.set_data(particle.spatial_grid, np.abs(particle.psi))
-        prob_line.set_data(particle.spatial_grid,
-                           particle.get_probability_density())
-        return real_line, imag_line, abs_line, prob_line
+        real_line.set_data(particle.spatial_grid, np.real(result[i * speed]))
+        imag_line.set_data(particle.spatial_grid, np.imag(result[i * speed]))
+        abs_line.set_data(particle.spatial_grid, np.abs(result[i * speed]))
+        return real_line, imag_line, abs_line,
 
 
-    anim = FuncAnimation(fig, animate, frames=steps, interval=1, blit=True,
+    anim = FuncAnimation(fig, animate, frames=steps, interval=1/60,
                          repeat=True)
-    # particle.simulation_step(potential.get_potential(), dt)
     # print(particle.psi)
     plt.show()
