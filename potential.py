@@ -58,10 +58,11 @@ class InfiniteSquareWell(PotentialBase):
 
 
 class HarmonicOscillator(PotentialBase):
-    def __init__(self, spatial_grid: np.ndarray, center: float, omega: float):
+    def __init__(self, spatial_grid: np.ndarray, center: float, omega: float, mass: float = 1):
         super().__init__(spatial_grid, "Harmonic Oscillator")
         self.omega = omega
         self.center = center
-        self.potential = 0.5 * self.omega ** 2 * np.square(spatial_grid - center)
+        self.potential = 0.5 * self.omega ** 2 * mass * np.square(
+            self.spatial_grid - self.center)
 
 

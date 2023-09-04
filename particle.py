@@ -40,8 +40,8 @@ class Particle:
         """
         off_diag = np.ones(len(self.spatial_grid) - 1)
         diag = -2 * np.ones(len(self.spatial_grid))
-        return sp.sparse.diags([off_diag, diag, off_diag],
-                               [-1, 0, 1], format="csr") / self.dx ** 2
+        return -sp.sparse.diags([off_diag, diag, off_diag],
+                               [-1, 0, 1], format="csr") / (2 * self.dx ** 2)
 
     def simulation_step(self, potential: sp.sparse.csr_matrix, dt: float):
         """
@@ -66,10 +66,11 @@ class Particle:
         # Calculate the matrix A as described in the Crank-Nicolson method
         # as a banded matrix
         off_diag = -0.5j * dt * kinetic_operator.diagonal(1)
-        off_diag_lower = np.concatenate(([0], off_diag))
-        off_diag_upper = np.concatenate((off_diag, [0]))
+        off_diag_lower = np.concatenate((off_diag, [0]))
+        off_diag_upper = np.concatenate(([0], off_diag))
+        #print(potential.diagonal(0))
         diag = np.ones(len(self.spatial_grid)) - 0.5j * dt * (kinetic_operator.diagonal(0) + potential.diagonal(0))
-        A = np.array([off_diag_lower, diag, off_diag_upper])
+        A = np.array([off_diag_upper, diag, off_diag_lower])
 
         # Calculate right hand side of the equation
         u2 = sp.sparse.eye(len(self.spatial_grid), format='csr') + 0.5j * dt * (kinetic_operator + potential)

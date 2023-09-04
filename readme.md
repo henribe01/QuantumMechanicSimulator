@@ -61,6 +61,8 @@ kinetic energy and the potential energy of the system.
        band matrix and solved the linear system with the '
        sp.linalg.solve_banded'.
        This reduced the runtime from 2.5s to 1s. (Improvement-factor: 2.5)
+  - Both optimizations together reduced the runtime from 30s to 1s.
+    (Improvement-factor: 30)
 
 ## Installation
 
