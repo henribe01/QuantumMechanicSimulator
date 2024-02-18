@@ -15,7 +15,12 @@ It is still work in progress.
     - [ ] Tunneling
     - [ ] Harmonic oscillator
     - [ ] Hydrogen atom
+- [ ] Time dependent Potential
+- [ ] 2D simulation
 - [ ] Calculate the eigenvalues and eigenfunctions of a given potential
+- [ ] Get a linear combination of eigenfunctions
+- [ ] Save the animation as a video
+- [ ] Implement a Terminal UI
 
 ## Theory
 
@@ -63,6 +68,11 @@ kinetic energy and the potential energy of the system.
        This reduced the runtime from 2.5s to 1s. (Improvement-factor: 2.5)
   - Both optimizations together reduced the runtime from 30s to 1s.
     (Improvement-factor: 30)
+- Finding time to work on the project:
+  - Due to college I had to pause the project for a few months. The good thing
+    is, that in the meantime I learned a lot about computational physics 
+    and numerical methods in college courses, which will definitely help me 
+    to improve the project.
 
 ## Installation
 
@@ -75,4 +85,3 @@ kinetic energy and the potential energy of the system.
 - [3] [Finite difference](https://en.wikipedia.org/wiki/Finite_difference)
 - [4] [Crank-Nicolson method](https://en.wikipedia.org/wiki/Crank%E2%80%93Nicolson_method)
 - [5] [Numerical Solutions to the Time-dependent Schrödinger Equation](http://staff.ustc.edu.cn/~zqj/posts/Numerical_TDSE/)
-- 
