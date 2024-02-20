@@ -32,6 +32,20 @@ class PotentialBase(ABC):
         """
         return sp.sparse.csr_matrix(sp.sparse.diags(self.potential))
 
+    def get_eigenstates(self, num_states: int, mass: float = 1) -> np.ndarray:
+        """
+        Returns the first num_states eigenstates of the potential
+        :param num_states: Number of eigenstates to return
+        :param mass: Mass of the particle
+        :return: Array of eigenstates
+        """
+        raise NotImplementedError
+
+class FreeParticle(PotentialBase):
+    def __init__(self, spatial_grid: np.ndarray):
+        super().__init__(spatial_grid, "Free Particle")
+        self.potential = np.zeros(len(spatial_grid))
+
 
 class InfiniteSquareWell(PotentialBase):
     def __init__(self, spatial_grid: np.ndarray, left_wall: float,
@@ -66,3 +80,13 @@ class HarmonicOscillator(PotentialBase):
             self.spatial_grid - self.center)
 
 
+class PotentialBarrier(PotentialBase):
+    def __init__(self, spatial_grid: np.ndarray, center: float, width: float,
+                 height: float):
+        super().__init__(spatial_grid, "Potential Barrier")
+        self.center = center
+        self.width = width
+        self.height = height
+        self.potential = np.zeros(len(spatial_grid))
+        self.potential[
+        (spatial_grid > center - width / 2) & (spatial_grid < center + width / 2)] = height
