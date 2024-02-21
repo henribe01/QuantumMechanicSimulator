@@ -4,6 +4,7 @@ from typing import Callable
 
 import numpy as np
 import scipy as sp
+from scipy.constants import hbar
 
 
 class Particle:
@@ -35,15 +36,15 @@ class Particle:
 
     def get_kinetic_operator(self) -> np.ndarray:
         """
-        Returns the kinetic operator 1/2 * d^2/dx^2
+        Returns the kinetic operator 1/(2m) * d^2/dx^2 as a banded matrix
         using the finite difference method on the spatial grid
         """
         off_diag = np.ones(len(self.spatial_grid) - 1)
         diag = -2 * np.ones(len(self.spatial_grid))
         return -sp.sparse.diags([off_diag, diag, off_diag],
-                               [-1, 0, 1], format="csr") / (2 * self.dx ** 2)
+                               [-1, 0, 1], format="csr") / (2 * self.mass * self.dx ** 2)
 
-    def simulation_step(self, potential: sp.sparse.csr_matrix, dt: float):
+    def simulation_step(self, potential: sp.sparse.csr_matrix, dt: float, potential_next: sp.sparse.csr_matrix = None) -> None:
         """
         Performs a single simulation step using the Crank-Nicolson method
         :param potential: The potential at the current time step
@@ -51,16 +52,30 @@ class Particle:
         Must be of shape (len(spatial_grid), len(spatial_grid)) \n
         Must be a sparse csr_matrix for good performance
         :param dt: The time step (for good results, dt should be <= 0.001)
+        :param potential_next: The potential at the next time step
+        as a diagonal matrix on the spatial grid. \n
+        Must be of shape (len(spatial_grid), len(spatial_grid)) \n
+        Must be a sparse csr_matrix for good performance
+        If None, the potential at the next time step is assumed to be the same
+        as the potential at the current time step
         :return: None
         """
-        if dt > 0.001:
+        if dt/self.dx**2 * hbar**2/(2*self.mass) > 0.5:
             sys.stdout.write(
-                f"Warning: dt = {dt} is larger than 0.001. "
+                f"Warning: dt/dx^2 = {dt/self.dx**2} is larger than 0.5. "
                 f"Results may be inaccurate.\n")
-        if potential.shape != (len(self.spatial_grid), len(self.spatial_grid)):
-            raise ValueError(
-                f"Potential must be of shape {len(self.spatial_grid)} x "
-                f"{len(self.spatial_grid)}")
+        # if potential.shape != (len(self.spatial_grid), len(self.spatial_grid)):
+        #     raise ValueError(
+        #         f"Potential must be of shape {len(self.spatial_grid)} x "
+        #         f"{len(self.spatial_grid)}")
+        # if potential_next is not None and potential_next.shape != (
+        #         len(self.spatial_grid), len(self.spatial_grid)):
+        #     raise ValueError(
+        #         f"Potential_next must be of shape {len(self.spatial_grid)} x "
+        #         f"{len(self.spatial_grid)}")
+
+        if potential_next is None:
+            potential_next = potential
 
         kinetic_operator = self.get_kinetic_operator()
         # Calculate the matrix A as described in the Crank-Nicolson method
@@ -69,17 +84,17 @@ class Particle:
         off_diag_lower = np.concatenate((off_diag, [0]))
         off_diag_upper = np.concatenate(([0], off_diag))
         #print(potential.diagonal(0))
-        diag = np.ones(len(self.spatial_grid)) - 0.5j * dt * (kinetic_operator.diagonal(0) + potential.diagonal(0))
-        A = np.array([off_diag_upper, diag, off_diag_lower])
+        diag = np.ones(len(self.spatial_grid)) - 0.5j * dt * (kinetic_operator.diagonal(0) + potential_next.diagonal(0))
+        m_next = np.array([off_diag_upper, diag, off_diag_lower])
 
         # Calculate right hand side of the equation
-        u2 = sp.sparse.eye(len(self.spatial_grid), format='csr') + 0.5j * dt * (kinetic_operator + potential)
-        b = u2.dot(self.psi)
+        m_current = sp.sparse.eye(len(self.spatial_grid), format='csr') + 0.5j * dt * (kinetic_operator + potential)
+        b = m_current.dot(self.psi)
 
         # Solve the equation
-        self.psi = sp.linalg.solve_banded((1, 1), A, b)
+        self.psi = sp.linalg.solve_banded((1, 1), m_next, b)
 
-    def simulate(self, potential: np.ndarray, dt: float, steps: int) -> None:
+    def simulate(self, potential: Callable, dt: float, steps: int) -> None:
         """
         Simulates the particle for a given number of time steps
         :param potential: The potential at the current time step
@@ -89,8 +104,11 @@ class Particle:
         :param steps: The number of time steps to simulate
         :return: None
         """
-        for _ in range(steps):
-            self.simulation_step(potential, dt)
+        for i in range(steps):
+            potential_current = potential(self.spatial_grid, i * dt) * sp.sparse.eye(len(self.spatial_grid))
+            potential_next = potential(self.spatial_grid, (i + 1) * dt) * sp.sparse.eye(len(self.spatial_grid))
+            print(potential_current.diagonal(0))
+            self.simulation_step(potential_current, dt, potential_next)
 
     def get_probability_density(self) -> np.ndarray:
         """
@@ -120,7 +138,7 @@ class Particle:
         if isinstance(other, Particle):
             raise TypeError(f'Cannot multiply Particle and {type(other)}',
                             'Only multiplication of Particle with scalar is supported')
-        return Particle(self.spatial_grid, lambda x: other.psi * self.psi)
+        return Particle(self.spatial_grid, lambda x: other * self.psi)
 
     def __rmul__(self, other):
         return self.__mul__(other)
