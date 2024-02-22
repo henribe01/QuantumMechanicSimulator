@@ -4,8 +4,9 @@ from typing import Callable
 
 import numpy as np
 import scipy as sp
-from scipy.constants import hbar
+# from scipy.constants import hbar
 
+hbar = 1
 
 class Particle:
 
@@ -32,7 +33,7 @@ class Particle:
         """
         Normalizes the wave function Psi
         """
-        self.psi /= np.sqrt(np.sum(np.square(np.abs(self.psi))) * self.dx)
+        self.psi /= np.linalg.norm(self.psi) * np.sqrt(self.dx)
 
     def get_kinetic_operator(self) -> np.ndarray:
         """
@@ -60,10 +61,10 @@ class Particle:
         as the potential at the current time step
         :return: None
         """
-        if dt/self.dx**2 * hbar**2/(2*self.mass) > 0.5:
-            sys.stdout.write(
-                f"Warning: dt/dx^2 = {dt/self.dx**2} is larger than 0.5. "
-                f"Results may be inaccurate.\n")
+        # if dt/self.dx**2 * hbar**2/(2*self.mass) > 0.5:
+        #     sys.stdout.write(
+        #         f"Warning: dt/dx^2 = {dt/self.dx**2} is larger than 0.5. "
+        #         f"Results may be inaccurate.\n")
         # if potential.shape != (len(self.spatial_grid), len(self.spatial_grid)):
         #     raise ValueError(
         #         f"Potential must be of shape {len(self.spatial_grid)} x "

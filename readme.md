@@ -10,15 +10,15 @@ It is still work in progress.
 - [x] Simulate a free particle
 - [ ] Simulate a particle in a potential
     - [x] Infinite potential well
-    - [ ] Finite potential well
+    - [x] Finite potential well
     - [ ] Step potential
     - [ ] Tunneling
-    - [ ] Harmonic oscillator
+    - [x] Harmonic oscillator
     - [ ] Hydrogen atom
-- [ ] Time dependent Potential
 - [ ] 2D simulation
-- [ ] Calculate the eigenvalues and eigenfunctions of a given potential
+- [ ] Calculate the eigenvalues and eigenfunctions of a given potential and plot them
 - [ ] Get a linear combination of eigenfunctions
+- [ ] Time dependent Potential
 - [ ] Save the animation as a video
 - [ ] Implement a Terminal UI
 
